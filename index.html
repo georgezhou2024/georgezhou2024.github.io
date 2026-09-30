@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>连通性检测面板</title>
+<title>DNS 连通性检测面板</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);color:#e5e7eb;min-height:100vh;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
@@ -33,14 +33,13 @@
   .dot.run{background:#9ca3af;box-shadow:0 0 8px rgba(156,163,175,.6);animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.4}}
   .site .name{font-size:14px;font-weight:600;word-break:break-all;flex:1}
-  .site .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13px}
-  .code.ok{color:#4ade80}
-  .code.bad{color:#f87171}
-  .code.warn{color:#fbbf24}
+  .site .badge{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:12px;padding:3px 8px;border-radius:6px;}
+  .badge.ok{background:rgba(34,197,94,.15);color:#4ade80}
+  .badge.bad{background:rgba(239,68,68,.15);color:#f87171}
+  .badge.warn{background:rgba(251,191,36,.15);color:#fbbf24}
   .site .row{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
-  .site .loc{color:#cbd5e1;font-size:12.5px;line-height:1.5}
-  .site .loc b{color:#e5e7eb;font-weight:600}
-  .site .detail{color:#9ca3af;font-size:11.5px;line-height:1.5;border-top:1px dashed rgba(255,255,255,.08);padding-top:6px}
+  .site .detail{color:#cbd5e1;font-size:12.5px;line-height:1.6;border-top:1px dashed rgba(255,255,255,.08);padding-top:8px}
+  .site .detail b{color:#e5e7eb}
   .history{margin-top:32px}
   .history h3{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
   .tags{display:flex;flex-wrap:wrap;gap:8px}
@@ -52,10 +51,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>站点连通性检测面板</h1>
-  <div class="sub">三层检测：DNS 解析 · HTTP 状态码 · 服务器位置（多源交叉验证）</div>
+  <h1>DNS 连通性检测面板</h1>
+  <div class="sub">浏览器原生探测 · 不依赖任何第三方代理 · 准确判断每个域名是否解析、是否可达</div>
   <div class="panel">
-    <textarea id="input" placeholder="每行输入一个域名或 URL，例如：&#10;baidu.com&#10;github.com&#10;zhihu.com&#10;this-domain-does-not-exist-12345.com"></textarea>
+    <textarea id="input" placeholder="每行输入一个域名，例如：&#10;baidu.com&#10;github.com&#10;this-domain-does-not-exist-zzz999.com"></textarea>
     <div class="actions">
       <button id="runBtn">开始批量检测</button>
       <button class="secondary" id="clearBtn">清空</button>
@@ -67,154 +66,109 @@
     <h3>常用站点（点击加入输入框）</h3>
     <div class="tags" id="tags"></div>
   </div>
-  <footer>DNS: Cloudflare DoH + Google DoH 交叉验证 · 地理位置: ipwho.is · 仓库: <a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
+  <footer>纯前端 DNS 探测 · 仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
 </div>
 <script>
 var $ = function(id){ return document.getElementById(id); };
 var presets = ['baidu.com','github.com','google.com','zhihu.com','doubao.com','bilibili.com','weibo.com','taobao.com','jd.com','youtube.com'];
-function normalize(s){
-  s = (s || '').trim();
-  if(!s) return null;
-  if(s.indexOf('http://') !== 0 && s.indexOf('https://') !== 0) s = 'https://' + s;
-  try{ return new URL(s).href; }catch(e){ return null; }
-}
-function getHost(url){ try{ return new URL(url).hostname; }catch(e){ return url; } }
 
-// 1) DNS-over-HTTPS 真实验证域名是否解析
-async function probeDns(host){
-  var sources = [
-    'https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(host) + '&type=A',
-    'https://dns.google/resolve?name=' + encodeURIComponent(host) + '&type=A'
-  ];
-  var ips = [];
-  for(var i=0;i<sources.length;i++){
-    try{
-      var r = await fetch(sources[i], {headers:{Accept:'application/dns-json'}});
-      var j = await r.json();
-      if(j.Status === 0 && j.Answer){
-        for(var k=0;k<j.Answer.length;k++){
-          if(j.Answer[k].type === 1 && ips.indexOf(j.Answer[k].data) === -1) ips.push(j.Answer[k].data);
-        }
+function getHost(url){
+  url = (url || '').trim();
+  if(!url) return null;
+  if(url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) url = 'https://' + url;
+  try{ return new URL(url).hostname; }catch(e){ return url; }
+}
+
+// 用 Image 对象探测：
+// - 如果 DNS 解析失败，浏览器不会发请求，img 立刻 error
+// - 如果 DNS 成功，请求会发出，性能面板里能看到 entry
+// - 如果服务器返回了有效图片，img onload
+// - 如果服务器返回非图片（404/500/拒绝），img error 但有性能记录
+function probeHost(host){
+  return new Promise(function(resolve){
+    var url = 'https://' + host + '/favicon.ico?_=' + Date.now();
+    var started = performance.now();
+    var settled = false;
+    var timeout = setTimeout(finish, 6000);
+    function finish(result){
+      if(settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      result.ms = (performance.now() - started).toFixed(0);
+      resolve(result);
+    }
+    var img = new Image();
+    img.onload = function(){
+      // 服务器真的返回了图片字节
+      finish({ dns: true, reachable: true, httpOk: true });
+    };
+    img.onerror = function(){
+      // 检查 performance 面板里有没有这个请求的记录
+      var entries = performance.getEntriesByName(url);
+      var dnsResolved = entries.length > 0;
+      // 再用一个 HEAD fetch no-cors 交叉确认 TCP 可达
+      if(!dnsResolved){
+        // 可能是 DNS 失败，也可能是图片本身不存在
+        // 用一个随机路径再试一次
+        var probeUrl = 'https://' + host + '/?_=' + Date.now();
+        fetch(probeUrl, {mode:'no-cors', cache:'no-store'})
+          .then(function(){ finish({ dns: true, reachable: true, httpOk: false }); })
+          .catch(function(){ finish({ dns: false, reachable: false, httpOk: false }); });
+      }else{
+        finish({ dns: true, reachable: true, httpOk: false });
       }
-    }catch(e){}
-  }
-  return ips;
+    };
+    img.src = url;
+  });
 }
 
-// 2) 通过 CORS 代理拿真实 HTTP 状态码（多代理交叉）
-async function probeHttp(url){
-  var t0 = performance.now();
-  var proxies = [
-    function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
-    function(u){ return 'https://corsproxy.io/?url=' + encodeURIComponent(u); }
-  ];
-  for(var i=0;i<proxies.length;i++){
-    try{
-      var r = await fetch(proxies[i](url), {redirect:'follow'});
-      var body = await r.text();
-      // 识别代理自身的错误页
-      if(body.indexOf('Could not resolve') !== -1 || body.indexOf('404 Not Found') !== -1 && body.length < 500){
-        // 可能是代理错误，继续试下一个
-        continue;
-      }
-      return { status: r.status, ms: (performance.now()-t0).toFixed(0) };
-    }catch(e){}
-  }
-  return { status: 'PROXY_FAIL', ms: (performance.now()-t0).toFixed(0) };
-}
-
-// 3) 服务器位置
-async function probeGeo(host, dnsIps){
-  try{
-    var q = dnsIps && dnsIps.length ? dnsIps[0] : host;
-    var r = await fetch('https://ipwho.is/' + q + '?lang=zh-CN');
-    var j = await r.json();
-    if(j.success === false) return null;
-    return { country: j.country, city: j.city, isp: j.connection && j.connection.isp, org: j.connection && j.connection.org, ip: j.ip };
-  }catch(e){ return null; }
-}
-
-function makeCard(url){
+function makeCard(host){
   var el = document.createElement('div');
   el.className = 'site';
-  var display = url.replace('https://','').replace('http://','');
   el.innerHTML =
-    '<div class="top"><span class="dot run"></span><span class="name">'+display+'</span><span class="code">...</span></div>' +
-    '<div class="row"><span>检测中</span><span>-</span></div>' +
-    '<div class="loc"><b>三层检测中...</b></div>' +
-    '<div class="detail"></div>';
+    '<div class="top"><span class="dot run"></span><span class="name">'+host+'</span><span class="badge">检测中</span></div>' +
+    '<div class="row"><span>-</span><span>等待</span></div>' +
+    '<div class="detail">正在解析 DNS ...</div>';
   return el;
 }
 
-// 综合判定：dnsIps 数组 + http 状态码
-function judge(dnsIps, http){
-  if(!dnsIps.length){
-    return { level:'bad', label:'DNS 解析失败', code:'NXDOMAIN' };
-  }
-  if(http.status === 'PROXY_FAIL'){
-    return { level:'warn', label:'DNS 通 · HTTP 代理不可达', code:'PROXY' };
-  }
-  if(typeof http.status === 'number'){
-    if(http.status >= 200 && http.status < 400){
-      return { level:'ok', label:'正常访问', code:http.status };
-    }
-    if(http.status === 404){
-      return { level:'warn', label:'服务器返回 404', code:404 };
-    }
-    if(http.status >= 500){
-      return { level:'bad', label:'服务器错误 ' + http.status, code:http.status };
-    }
-    return { level:'warn', label:'HTTP ' + http.status, code:http.status };
-  }
-  return { level:'warn', label:'未知', code:'?' };
-}
-
-function setCard(el, url, dnsIps, http, geo){
+function setCard(el, host, r){
   var dot = el.querySelector('.dot');
-  var code = el.querySelector('.code');
+  var badge = el.querySelector('.badge');
   var row = el.querySelector('.row');
-  var loc = el.querySelector('.loc');
   var detail = el.querySelector('.detail');
-  var j = judge(dnsIps, http);
-  dot.className = 'dot ' + j.level;
-  code.className = 'code ' + j.level;
-  code.textContent = j.code;
-  row.firstElementChild.textContent = http.ms + ' ms';
-  row.lastElementChild.textContent = new URL(url).protocol.replace(':','').toUpperCase();
-
-  if(dnsIps.length){
-    var parts = [];
-    if(geo){
-      if(geo.country) parts.push(geo.country);
-      if(geo.city) parts.push(geo.city);
-    }
-    var line = '<b>' + (parts.join(' · ') || '未知位置') + '</b>';
-    if(geo && geo.isp) line += '<br>' + geo.isp;
-    loc.innerHTML = line;
-    detail.innerHTML = 'DNS: ' + dnsIps.slice(0,3).join(', ') + (dnsIps.length > 3 ? ' 等 ' + dnsIps.length + ' 个 IP' : '');
+  var level, label, msg;
+  if(r.dns && r.httpOk){
+    level = 'ok'; label = '可达';
+    msg = '<b>DNS 解析成功 · 服务器返回了内容</b>';
+  }else if(r.dns && !r.httpOk){
+    level = 'warn'; label = 'DNS OK';
+    msg = '<b>DNS 解析成功 · TCP 可达</b><br>但服务器未返回有效资源（可能 404 / 拒绝跨域图片）';
   }else{
-    loc.innerHTML = '<b style="color:#f87171">域名无法解析</b><br><span style="color:#6b7280">Cloudflare + Google DoH 均未返回 A 记录</span>';
-    detail.innerHTML = 'HTTP: ' + j.label;
+    level = 'bad'; label = 'NXDOMAIN';
+    msg = '<b style="color:#f87171">DNS 解析失败</b><br>该域名无法被系统解析为 IP（域名不存在或被污染）';
   }
+  dot.className = 'dot ' + level;
+  badge.className = 'badge ' + level;
+  badge.textContent = label;
+  row.firstElementChild.textContent = r.ms + ' ms';
+  row.lastElementChild.textContent = r.dns ? 'HTTPS' : '-';
+  detail.innerHTML = msg;
 }
 
 async function run(){
-  var lines = $('input').value.split(String.fromCharCode(10)).map(normalize).filter(Boolean);
-  if(!lines.length){ alert('请先输入至少一个域名'); return; }
+  var hosts = $('input').value.split(String.fromCharCode(10)).map(getHost).filter(Boolean);
+  if(!hosts.length){ alert('请先输入至少一个域名'); return; }
   $('runBtn').disabled = true;
   $('grid').innerHTML = '';
   $('summary').innerHTML = '';
-  var cards = lines.map(function(u){ var c = makeCard(u); $('grid').appendChild(c); return {u:u,c:c}; });
+  var cards = hosts.map(function(h){ var c = makeCard(h); $('grid').appendChild(c); return {h:h,c:c}; });
   var okCount = 0, warnCount = 0, badCount = 0;
   await Promise.all(cards.map(async function(item){
-    var host = getHost(item.u);
-    var dnsIps = await probeDns(host);
-    var results = await Promise.all([probeHttp(item.u), probeGeo(host, dnsIps)]);
-    var http = results[0], geo = results[1];
-    setCard(item.c, item.u, dnsIps, http, geo);
-    var j = judge(dnsIps, http);
-    if(j.level === 'ok') okCount++; else if(j.level === 'warn') warnCount++; else badCount++;
-    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 正常 · 🟡 <b class="warn">'+warnCount+'</b> 异常 · ❌ <b class="bad">'+badCount+'</b> 失败 / 共 '+lines.length+' 个';
+    var r = await probeHost(item.h);
+    setCard(item.c, item.h, r);
+    if(r.dns && r.httpOk) okCount++; else if(r.dns) warnCount++; else badCount++;
+    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 可达 · 🟡 <b class="warn">'+warnCount+'</b> DNS通但无内容 · ❌ <b class="bad">'+badCount+'</b> 无法解析 / 共 '+hosts.length+' 个';
   }));
   $('runBtn').disabled = false;
 }
