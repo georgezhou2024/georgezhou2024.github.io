@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>georgezhou2024.github.io — 状态</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);
+    color:#e5e7eb;min-height:100%;display:flex;flex-direction:column;align-items:center;padding:48px 20px;
+  }
+  .wrap{width:100%;max-width:760px}
+  .badge{
+    display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;
+    background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#4ade80;
+    font-size:14px;font-weight:500;
+  }
+  .dot{width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 14px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  h1{margin-top:24px;font-size:clamp(28px,5vw,46px);font-weight:700;letter-spacing:-.02em;word-break:break-all}
+  .sub{margin-top:10px;color:#9ca3af;font-size:15px}
+  .grid{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .card{
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 20px;
+  }
+  .card .k{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
+  .card .v{margin-top:8px;font-size:22px;font-weight:600;color:#f9fafb;word-break:break-all}
+  .card .v.green{color:#4ade80}.card .v.blue{color:#60a5fa}
+  .btn{
+    margin-top:28px;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:10px;
+    background:#22c55e;color:#052e16;font-weight:600;border:none;cursor:pointer;font-size:14px;
+    transition:transform .1s ease,opacity .2s;
+  }
+  .btn:hover{opacity:.9;transform:translateY(-1px)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  footer{margin-top:48px;color:#6b7280;font-size:13px;text-align:center;line-height:1.7}
+  footer a{color:#9ca3af;text-decoration:none;border-bottom:1px dotted #4b5563}
+  footer a:hover{color:#fff}
+  .log{margin-top:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#9ca3af;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;line-height:1.7;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge"><span class="dot"></span><span id="statusText">站点在线 · Operational</span></span>
+  <h1 id="domain">georgezhou2024.github.io</h1>
+  <div class="sub">GitHub Pages 状态自检页 · 由本页面自身证明站点可用</div>
+
+  <div class="grid">
+    <div class="card"><div class="k">HTTP 状态码</div><div class="v green" id="code">检测中…</div></div>
+    <div class="card"><div class="k">页面加载耗时</div><div class="v blue" id="ttfb">—</div></div>
+    <div class="card"><div class="k">协议</div><div class="v" id="proto">—</div></div>
+    <div class="card"><div class="k">检测时间</div><div class="v" id="checkedAt">—</div></div>
+  </div>
+
+  <button class="btn" id="recheck">↻ 重新检测</button>
+
+  <div class="log" id="log">就绪。</div>
+
+  <footer>
+    仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="blank">georgezhou2024/georgezhou2024.github.io</a><br/>
+    © 2026 georgezhou2024 · Built with GitHub Pages
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = (...a) => { $('log').textContent = '[' + new Date().toLocaleTimeString() + '] ' + a.join('\n'); };
+
+async function check(){
+  $('recheck').disabled = true;
+  const t0 = performance.now();
+  try{
+    const r = await fetch(location.href.split('?')[0] + '?t=' + Date.now(), {method:'GET', cache:'no-store'});
+    const dt = (performance.now() - t0).toFixed(0);
+    $('code').textContent = r.status + ' ' + r.statusText;
+    $('ttfb').textContent = dt + ' ms';
+    $('proto').textContent = location.protocol.replace(':','').toUpperCase();
+    $('checkedAt').textContent = new Date().toLocaleString();
+    $('statusText').textContent = r.ok ? '站点在线 · Operational' : '异常 · ' + r.status;
+    log('自检完成：HTTP ' + r.status + '，耗时 ' + dt + ' ms。');
+  }catch(e){
+    $('code').textContent = '请求失败';
+    $('statusText').textContent = '无法访问';
+    log('自检失败：' + e.message);
+  }finally{
+    $('recheck').disabled = false;
+  }
+}
+
+window.addEventListener('load', check);
+$('recheck').addEventListener('click', check);
+</script>
+</body>
+</html>
