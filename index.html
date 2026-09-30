@@ -7,11 +7,11 @@
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);color:#e5e7eb;min-height:100vh;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
-  .wrap{width:100%;max-width:900px}
+  .wrap{width:100%;max-width:960px}
   h1{font-size:clamp(24px,4vw,34px);font-weight:700;letter-spacing:-.02em}
   .sub{margin-top:6px;color:#9ca3af;font-size:14px}
   .panel{margin-top:24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}
-  textarea{width:100%;min-height:130px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f9fafb;padding:14px;font-size:14.5px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none;line-height:1.6;}
+  textarea{width:100%;min-height:120px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f9fafb;padding:14px;font-size:14.5px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none;line-height:1.6;}
   textarea:focus{border-color:#22c55e}
   textarea::placeholder{color:#6b7280}
   .actions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -22,7 +22,7 @@
   .summary{font-size:13.5px;color:#9ca3af;margin-left:auto}
   .summary b{color:#4ade80}
   .summary b.bad{color:#f87171}
-  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
   .site{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
   .site .top{display:flex;align-items:center;gap:10px}
   .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#4b5563}
@@ -31,11 +31,14 @@
   .dot.run{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6);animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.4}}
   .site .name{font-size:14px;font-weight:600;word-break:break-all;flex:1}
-  .site .meta{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
-  .site .code{font-weight:600}
+  .site .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13px}
   .code.ok{color:#4ade80}
   .code.bad{color:#f87171}
   .code.warn{color:#fbbf24}
+  .site .row{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .site .loc{color:#cbd5e1;font-size:12.5px;line-height:1.5}
+  .site .loc b{color:#e5e7eb;font-weight:600}
+  .site .redirect{color:#60a5fa;font-size:11.5px;word-break:break-all;line-height:1.4;border-top:1px dashed rgba(255,255,255,.08);padding-top:6px}
   .history{margin-top:32px}
   .history h3{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
   .tags{display:flex;flex-wrap:wrap;gap:8px}
@@ -48,7 +51,7 @@
 <body>
 <div class="wrap">
   <h1>站点连通性检测面板</h1>
-  <div class="sub">每行输入一个域名或 URL，批量检测是否可访问</div>
+  <div class="sub">每行输入一个域名，批量检测连通性 · HTTP · DNS · 服务器位置 · CDN</div>
   <div class="panel">
     <textarea id="input" placeholder="每行输入一个域名或 URL，例如：&#10;baidu.com&#10;github.com&#10;https://zhihu.com"></textarea>
     <div class="actions">
@@ -62,7 +65,7 @@
     <h3>常用站点（点击加入输入框）</h3>
     <div class="tags" id="tags"></div>
   </div>
-  <footer>仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024.github.io</a></footer>
+  <footer>仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024.github.io</a> · 地理位置数据来自 ipwho.is</footer>
 </div>
 <script>
 var $ = function(id){ return document.getElementById(id); };
@@ -73,7 +76,8 @@ function normalize(s){
   if(s.indexOf('http://') !== 0 && s.indexOf('https://') !== 0) s = 'https://' + s;
   try{ return new URL(s).href; }catch(e){ return null; }
 }
-async function probe(url){
+function getHost(url){ try{ return new URL(url).hostname; }catch(e){ return url; } }
+async function probeHttp(url){
   var t0 = performance.now();
   var proxies = [
     function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
@@ -82,29 +86,56 @@ async function probe(url){
   for(var i=0;i<proxies.length;i++){
     try{
       var r = await fetch(proxies[i](url), {redirect:'follow'});
-      return { ok: r.status < 500, status: r.status, ms: (performance.now()-t0).toFixed(0) };
+      return { ok: r.status < 500, status: r.status, ms: (performance.now()-t0).toFixed(0), finalUrl: null };
     }catch(e){}
   }
   try{
     await fetch(url, {mode:'no-cors', cache:'no-store'});
-    return { ok: true, status: 'opaque', ms: (performance.now()-t0).toFixed(0) };
+    return { ok: true, status: 'opaque', ms: (performance.now()-t0).toFixed(0), finalUrl: null };
   }catch(e){
-    return { ok: false, status: 'ERR', ms: (performance.now()-t0).toFixed(0) };
+    return { ok: false, status: 'DNS_ERR', ms: (performance.now()-t0).toFixed(0), finalUrl: null };
   }
+}
+async function probeGeo(host){
+  try{
+    var r = await fetch('https://ipwho.is/' + host + '?lang=zh-CN');
+    var j = await r.json();
+    if(j.success === false) return null;
+    return { country: j.country, city: j.city, isp: j.connection && j.connection.isp, org: j.connection && j.connection.org, asn: j.connection && j.connection.asn, ip: j.ip };
+  }catch(e){ return null; }
 }
 function makeCard(url){
   var el = document.createElement('div');
   el.className = 'site';
   var display = url.replace('https://','').replace('http://','');
-  el.innerHTML = '<div class="top"><span class="dot run"></span><span class="name">'+display+'</span></div><div class="meta"><span>-</span><span class="code">检测中...</span></div>';
+  el.innerHTML =
+    '<div class="top"><span class="dot run"></span><span class="name">'+display+'</span><span class="code">...</span></div>' +
+    '<div class="row"><span>连接中</span><span>-</span></div>' +
+    '<div class="loc"><b>定位服务器...</b></div>';
   return el;
 }
-function setCard(el, r){
-  var dot = el.querySelector('.dot'), code = el.querySelector('.code'), meta = el.querySelector('.meta');
-  dot.className = 'dot ' + (r.ok ? 'ok' : 'bad');
-  code.className = 'code ' + (r.ok ? (r.status < 400 ? 'ok' : 'warn') : 'bad');
-  code.textContent = r.status;
-  meta.firstElementChild.textContent = r.ms + ' ms';
+function setCard(el, http, geo){
+  var dot = el.querySelector('.dot');
+  var code = el.querySelector('.code');
+  var row = el.querySelector('.row');
+  var loc = el.querySelector('.loc');
+  dot.className = 'dot ' + (http.ok ? 'ok' : 'bad');
+  code.className = 'code ' + (http.ok ? (typeof http.status === 'number' && http.status < 400 ? 'ok' : 'warn') : 'bad');
+  code.textContent = http.status;
+  row.firstElementChild.textContent = http.ms + ' ms';
+  row.lastElementChild.textContent = location.protocol.replace(':','').toUpperCase();
+  if(geo){
+    var parts = [];
+    if(geo.country) parts.push(geo.country);
+    if(geo.city) parts.push(geo.city);
+    var line = '<b>' + parts.join(' · ') + '</b>';
+    if(geo.isp) line += '<br>' + geo.isp;
+    if(geo.org && geo.org !== geo.isp) line += ' · ' + geo.org;
+    if(geo.ip) line += '<br><span style="color:#6b7280">IP: ' + geo.ip + '</span>';
+    loc.innerHTML = line;
+  }else{
+    loc.innerHTML = '<span style="color:#6b7280">位置未知（可能被代理拦截）</span>';
+  }
 }
 async function run(){
   var lines = $('input').value.split(String.fromCharCode(10)).map(normalize).filter(Boolean);
@@ -115,9 +146,11 @@ async function run(){
   var cards = lines.map(function(u){ var c = makeCard(u); $('grid').appendChild(c); return {u:u,c:c}; });
   var okCount = 0, badCount = 0;
   await Promise.all(cards.map(async function(item){
-    var r = await probe(item.u);
-    setCard(item.c, r);
-    if(r.ok) okCount++; else badCount++;
+    var host = getHost(item.u);
+    var results = await Promise.all([probeHttp(item.u), probeGeo(host)]);
+    var http = results[0], geo = results[1];
+    setCard(item.c, http, geo);
+    if(http.ok) okCount++; else badCount++;
     $('summary').innerHTML = '✅ <b>'+okCount+'</b> 通 · ❌ <b class="bad">'+badCount+'</b> 不通 / 共 '+lines.length+' 个';
   }));
   $('runBtn').disabled = false;
