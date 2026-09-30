@@ -21,14 +21,16 @@
   button:disabled{opacity:.5;cursor:not-allowed}
   .summary{font-size:13.5px;color:#9ca3af;margin-left:auto}
   .summary b{color:#4ade80}
+  .summary b.warn{color:#fbbf24}
   .summary b.bad{color:#f87171}
-  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
   .site{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
   .site .top{display:flex;align-items:center;gap:10px}
   .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#4b5563}
   .dot.ok{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.6)}
   .dot.bad{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)}
-  .dot.run{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6);animation:blink 1s infinite}
+  .dot.warn{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6)}
+  .dot.run{background:#9ca3af;box-shadow:0 0 8px rgba(156,163,175,.6);animation:blink 1s infinite}
   @keyframes blink{50%{opacity:.4}}
   .site .name{font-size:14px;font-weight:600;word-break:break-all;flex:1}
   .site .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:13px}
@@ -38,7 +40,7 @@
   .site .row{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
   .site .loc{color:#cbd5e1;font-size:12.5px;line-height:1.5}
   .site .loc b{color:#e5e7eb;font-weight:600}
-  .site .redirect{color:#60a5fa;font-size:11.5px;word-break:break-all;line-height:1.4;border-top:1px dashed rgba(255,255,255,.08);padding-top:6px}
+  .site .detail{color:#9ca3af;font-size:11.5px;line-height:1.5;border-top:1px dashed rgba(255,255,255,.08);padding-top:6px}
   .history{margin-top:32px}
   .history h3{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
   .tags{display:flex;flex-wrap:wrap;gap:8px}
@@ -51,9 +53,9 @@
 <body>
 <div class="wrap">
   <h1>站点连通性检测面板</h1>
-  <div class="sub">每行输入一个域名，批量检测连通性 · HTTP · DNS · 服务器位置 · CDN</div>
+  <div class="sub">三层检测：DNS 解析 · HTTP 状态码 · 服务器位置（多源交叉验证）</div>
   <div class="panel">
-    <textarea id="input" placeholder="每行输入一个域名或 URL，例如：&#10;baidu.com&#10;github.com&#10;https://zhihu.com"></textarea>
+    <textarea id="input" placeholder="每行输入一个域名或 URL，例如：&#10;baidu.com&#10;github.com&#10;zhihu.com&#10;this-domain-does-not-exist-12345.com"></textarea>
     <div class="actions">
       <button id="runBtn">开始批量检测</button>
       <button class="secondary" id="clearBtn">清空</button>
@@ -65,7 +67,7 @@
     <h3>常用站点（点击加入输入框）</h3>
     <div class="tags" id="tags"></div>
   </div>
-  <footer>仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024.github.io</a> · 地理位置数据来自 ipwho.is</footer>
+  <footer>DNS: Cloudflare DoH + Google DoH 交叉验证 · 地理位置: ipwho.is · 仓库: <a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
 </div>
 <script>
 var $ = function(id){ return document.getElementById(id); };
@@ -77,6 +79,29 @@ function normalize(s){
   try{ return new URL(s).href; }catch(e){ return null; }
 }
 function getHost(url){ try{ return new URL(url).hostname; }catch(e){ return url; } }
+
+// 1) DNS-over-HTTPS 真实验证域名是否解析
+async function probeDns(host){
+  var sources = [
+    'https://cloudflare-dns.com/dns-query?name=' + encodeURIComponent(host) + '&type=A',
+    'https://dns.google/resolve?name=' + encodeURIComponent(host) + '&type=A'
+  ];
+  var ips = [];
+  for(var i=0;i<sources.length;i++){
+    try{
+      var r = await fetch(sources[i], {headers:{Accept:'application/dns-json'}});
+      var j = await r.json();
+      if(j.Status === 0 && j.Answer){
+        for(var k=0;k<j.Answer.length;k++){
+          if(j.Answer[k].type === 1 && ips.indexOf(j.Answer[k].data) === -1) ips.push(j.Answer[k].data);
+        }
+      }
+    }catch(e){}
+  }
+  return ips;
+}
+
+// 2) 通过 CORS 代理拿真实 HTTP 状态码（多代理交叉）
 async function probeHttp(url){
   var t0 = performance.now();
   var proxies = [
@@ -86,57 +111,93 @@ async function probeHttp(url){
   for(var i=0;i<proxies.length;i++){
     try{
       var r = await fetch(proxies[i](url), {redirect:'follow'});
-      return { ok: r.status < 500, status: r.status, ms: (performance.now()-t0).toFixed(0), finalUrl: null };
+      var body = await r.text();
+      // 识别代理自身的错误页
+      if(body.indexOf('Could not resolve') !== -1 || body.indexOf('404 Not Found') !== -1 && body.length < 500){
+        // 可能是代理错误，继续试下一个
+        continue;
+      }
+      return { status: r.status, ms: (performance.now()-t0).toFixed(0) };
     }catch(e){}
   }
-  try{
-    await fetch(url, {mode:'no-cors', cache:'no-store'});
-    return { ok: true, status: 'opaque', ms: (performance.now()-t0).toFixed(0), finalUrl: null };
-  }catch(e){
-    return { ok: false, status: 'DNS_ERR', ms: (performance.now()-t0).toFixed(0), finalUrl: null };
-  }
+  return { status: 'PROXY_FAIL', ms: (performance.now()-t0).toFixed(0) };
 }
-async function probeGeo(host){
+
+// 3) 服务器位置
+async function probeGeo(host, dnsIps){
   try{
-    var r = await fetch('https://ipwho.is/' + host + '?lang=zh-CN');
+    var q = dnsIps && dnsIps.length ? dnsIps[0] : host;
+    var r = await fetch('https://ipwho.is/' + q + '?lang=zh-CN');
     var j = await r.json();
     if(j.success === false) return null;
-    return { country: j.country, city: j.city, isp: j.connection && j.connection.isp, org: j.connection && j.connection.org, asn: j.connection && j.connection.asn, ip: j.ip };
+    return { country: j.country, city: j.city, isp: j.connection && j.connection.isp, org: j.connection && j.connection.org, ip: j.ip };
   }catch(e){ return null; }
 }
+
 function makeCard(url){
   var el = document.createElement('div');
   el.className = 'site';
   var display = url.replace('https://','').replace('http://','');
   el.innerHTML =
     '<div class="top"><span class="dot run"></span><span class="name">'+display+'</span><span class="code">...</span></div>' +
-    '<div class="row"><span>连接中</span><span>-</span></div>' +
-    '<div class="loc"><b>定位服务器...</b></div>';
+    '<div class="row"><span>检测中</span><span>-</span></div>' +
+    '<div class="loc"><b>三层检测中...</b></div>' +
+    '<div class="detail"></div>';
   return el;
 }
-function setCard(el, http, geo){
+
+// 综合判定：dnsIps 数组 + http 状态码
+function judge(dnsIps, http){
+  if(!dnsIps.length){
+    return { level:'bad', label:'DNS 解析失败', code:'NXDOMAIN' };
+  }
+  if(http.status === 'PROXY_FAIL'){
+    return { level:'warn', label:'DNS 通 · HTTP 代理不可达', code:'PROXY' };
+  }
+  if(typeof http.status === 'number'){
+    if(http.status >= 200 && http.status < 400){
+      return { level:'ok', label:'正常访问', code:http.status };
+    }
+    if(http.status === 404){
+      return { level:'warn', label:'服务器返回 404', code:404 };
+    }
+    if(http.status >= 500){
+      return { level:'bad', label:'服务器错误 ' + http.status, code:http.status };
+    }
+    return { level:'warn', label:'HTTP ' + http.status, code:http.status };
+  }
+  return { level:'warn', label:'未知', code:'?' };
+}
+
+function setCard(el, url, dnsIps, http, geo){
   var dot = el.querySelector('.dot');
   var code = el.querySelector('.code');
   var row = el.querySelector('.row');
   var loc = el.querySelector('.loc');
-  dot.className = 'dot ' + (http.ok ? 'ok' : 'bad');
-  code.className = 'code ' + (http.ok ? (typeof http.status === 'number' && http.status < 400 ? 'ok' : 'warn') : 'bad');
-  code.textContent = http.status;
+  var detail = el.querySelector('.detail');
+  var j = judge(dnsIps, http);
+  dot.className = 'dot ' + j.level;
+  code.className = 'code ' + j.level;
+  code.textContent = j.code;
   row.firstElementChild.textContent = http.ms + ' ms';
-  row.lastElementChild.textContent = location.protocol.replace(':','').toUpperCase();
-  if(geo){
+  row.lastElementChild.textContent = new URL(url).protocol.replace(':','').toUpperCase();
+
+  if(dnsIps.length){
     var parts = [];
-    if(geo.country) parts.push(geo.country);
-    if(geo.city) parts.push(geo.city);
-    var line = '<b>' + parts.join(' · ') + '</b>';
-    if(geo.isp) line += '<br>' + geo.isp;
-    if(geo.org && geo.org !== geo.isp) line += ' · ' + geo.org;
-    if(geo.ip) line += '<br><span style="color:#6b7280">IP: ' + geo.ip + '</span>';
+    if(geo){
+      if(geo.country) parts.push(geo.country);
+      if(geo.city) parts.push(geo.city);
+    }
+    var line = '<b>' + (parts.join(' · ') || '未知位置') + '</b>';
+    if(geo && geo.isp) line += '<br>' + geo.isp;
     loc.innerHTML = line;
+    detail.innerHTML = 'DNS: ' + dnsIps.slice(0,3).join(', ') + (dnsIps.length > 3 ? ' 等 ' + dnsIps.length + ' 个 IP' : '');
   }else{
-    loc.innerHTML = '<span style="color:#6b7280">位置未知（可能被代理拦截）</span>';
+    loc.innerHTML = '<b style="color:#f87171">域名无法解析</b><br><span style="color:#6b7280">Cloudflare + Google DoH 均未返回 A 记录</span>';
+    detail.innerHTML = 'HTTP: ' + j.label;
   }
 }
+
 async function run(){
   var lines = $('input').value.split(String.fromCharCode(10)).map(normalize).filter(Boolean);
   if(!lines.length){ alert('请先输入至少一个域名'); return; }
@@ -144,17 +205,20 @@ async function run(){
   $('grid').innerHTML = '';
   $('summary').innerHTML = '';
   var cards = lines.map(function(u){ var c = makeCard(u); $('grid').appendChild(c); return {u:u,c:c}; });
-  var okCount = 0, badCount = 0;
+  var okCount = 0, warnCount = 0, badCount = 0;
   await Promise.all(cards.map(async function(item){
     var host = getHost(item.u);
-    var results = await Promise.all([probeHttp(item.u), probeGeo(host)]);
+    var dnsIps = await probeDns(host);
+    var results = await Promise.all([probeHttp(item.u), probeGeo(host, dnsIps)]);
     var http = results[0], geo = results[1];
-    setCard(item.c, http, geo);
-    if(http.ok) okCount++; else badCount++;
-    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 通 · ❌ <b class="bad">'+badCount+'</b> 不通 / 共 '+lines.length+' 个';
+    setCard(item.c, item.u, dnsIps, http, geo);
+    var j = judge(dnsIps, http);
+    if(j.level === 'ok') okCount++; else if(j.level === 'warn') warnCount++; else badCount++;
+    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 正常 · 🟡 <b class="warn">'+warnCount+'</b> 异常 · ❌ <b class="bad">'+badCount+'</b> 失败 / 共 '+lines.length+' 个';
   }));
   $('runBtn').disabled = false;
 }
+
 function renderTags(){
   var box = $('tags'); box.innerHTML = '';
   presets.forEach(function(p){
