@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<title>DNS 连通性 + 网速测速面板 v4</title>
+<title>DNS 连通性 + 网速测速面板 v5</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);color:#e5e7eb;min-height:100vh;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
@@ -14,7 +14,7 @@
   .ver{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:rgba(34,197,94,.15);color:#4ade80;padding:4px 10px;border-radius:999px;border:1px solid rgba(34,197,94,.3)}
   .sub{margin-top:6px;color:#9ca3af;font-size:14px}
   .section{margin-top:28px}
-  .section h2{font-size:18px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .section h2{font-size:18px;font-weight:600;margin-bottom:12px}
   .panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}
   textarea{width:100%;min-height:120px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f9fafb;padding:14px;font-size:14.5px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none;line-height:1.6;}
   textarea:focus{border-color:#22c55e}
@@ -22,14 +22,13 @@
   .actions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   button{background:#22c55e;color:#052e16;border:none;padding:11px 22px;border-radius:10px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;}
   button.secondary{background:rgba(255,255,255,.08);color:#e5e7eb}
-  button.blue{background:#3b82f6;color:#fff}
   button:hover{opacity:.9}
   button:disabled{opacity:.5;cursor:not-allowed}
   .summary{font-size:13.5px;color:#9ca3af;margin-left:auto}
   .summary b{color:#4ade80}
   .summary b.warn{color:#fbbf24}
   .summary b.bad{color:#f87171}
-  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
   .site{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
   .site .top{display:flex;align-items:center;gap:10px}
   .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#4b5563}
@@ -46,7 +45,7 @@
   .site .row{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
   .site .detail{color:#cbd5e1;font-size:12.5px;line-height:1.6;border-top:1px dashed rgba(255,255,255,.08);padding-top:8px}
   .site .detail b{color:#e5e7eb}
-  /* speed block */
+  .site .ips{margin-top:4px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#60a5fa;word-break:break-all}
   .speed-display{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:14px}
   .speed-card{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;text-align:center}
   .speed-card .k{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
@@ -68,11 +67,10 @@
 <div class="wrap">
   <div class="title-row">
     <h1>DNS 连通性 + 网速测速面板</h1>
-    <span class="ver">v4 · 内置测速</span>
+    <span class="ver">v5 · 多源 DoH</span>
   </div>
-  <div class="sub">浏览器原生探测 · 内置 Cloudflare 下行测速 · 可跳转 speedtest.cn 对比</div>
+  <div class="sub">通过 4 个公共 DoH（阿里/腾讯/Cloudflare/Google）交叉查真实 DNS，不受本地代理 fake-ip 干扰</div>
 
-  <!-- 测速区 -->
   <div class="section">
     <h2>🚀 网速测试</h2>
     <div class="panel">
@@ -90,9 +88,8 @@
     </div>
   </div>
 
-  <!-- DNS 检测区 -->
   <div class="section">
-    <h2>🌐 域名连通性检测</h2>
+    <h2>🌐 域名 DNS 检测（多源交叉）</h2>
     <div class="panel">
       <textarea id="input" placeholder="每行输入一个域名，例如：&#10;baidu.com&#10;github.com&#10;this-domain-does-not-exist-zzz999.com"></textarea>
       <div class="actions">
@@ -109,7 +106,7 @@
     <div class="tags" id="tags"></div>
   </div>
 
-  <footer>v4 · 下载测速源: speed.cloudflare.com · 对比标准: <a href="https://www.speedtest.cn/" target="_blank">speedtest.cn</a> · 仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
+  <footer>v5 · DNS 查询: 阿里/腾讯/Cloudflare/Google DoH · 测速源: speed.cloudflare.com · 标准对比: <a href="https://www.speedtest.cn/" target="_blank">speedtest.cn</a></footer>
 </div>
 <script>
 var $ = function(id){ return document.getElementById(id); };
@@ -117,84 +114,103 @@ var presets = ['baidu.com','github.com','google.com','zhihu.com','doubao.com','b
 
 // ==== 测速 ====
 async function runSpeed(){
-  var btn = $('speedBtn');
-  btn.disabled = true; btn.textContent = '测速中...';
+  var btn = $('speedBtn'); btn.disabled = true; btn.textContent = '测速中...';
   $('speedStatus').innerHTML = '正在从 Cloudflare 拉取 25MB ...';
   $('speedBar').style.width = '0%';
-  var bytes = 25 * 1000 * 1000; // 25MB
+  var bytes = 25 * 1000 * 1000;
   var url = 'https://speed.cloudflare.com/__down?bytes=' + bytes + '&_=' + Date.now();
   var t0 = performance.now();
   try{
     var resp = await fetch(url);
     var reader = resp.body.getReader();
     var received = 0;
-    while(true){
-      var chunk = await reader.read();
-      if(chunk.done) break;
-      received += chunk.value.length;
-      var elapsed = (performance.now() - t0) / 1000;
-      var pct = Math.min(100, received / bytes * 100);
-      $('speedBar').style.width = pct + '%';
-      var mbps = received * 8 / 1000 / 1000 / Math.max(elapsed, 0.1);
-      $('dlSpeed').innerHTML = mbps.toFixed(1) + '<span class="u">Mbps</span>';
-    }
-    var elapsed = (performance.now() - t0) / 1000;
-    var mbps = received * 8 / 1000 / 1000 / elapsed;
-    $('dlSpeed').innerHTML = mbps.toFixed(1) + '<span class="u">Mbps</span>';
-    $('dlTime').innerHTML = elapsed.toFixed(2) + '<span class="u">s</span>';
-    $('dlSize').textContent = (received/1000/1000).toFixed(1) + ' MB';
-    $('dlInfo').textContent = '下载于 ' + new Date().toLocaleTimeString();
-    $('speedStatus').innerHTML = '✅ 测速完成 · <b>' + mbps.toFixed(1) + ' Mbps</b>';
-  }catch(e){
-    $('speedStatus').innerHTML = '<span style="color:#f87171">测速失败：' + e.message + '</span>';
-  }
+    while(true){ var chunk = await reader.read(); if(chunk.done) break; received += chunk.value.length; var elapsed = (performance.now()-t0)/1000; var pct = Math.min(100, received/bytes*100); $('speedBar').style.width = pct+'%'; var mbps = received*8/1000/1000/Math.max(elapsed,0.1); $('dlSpeed').innerHTML = mbps.toFixed(1)+'<span class="u">Mbps</span>'; }
+    var elapsed = (performance.now()-t0)/1000;
+    var mbps = received*8/1000/1000/elapsed;
+    $('dlSpeed').innerHTML = mbps.toFixed(1)+'<span class="u">Mbps</span>';
+    $('dlTime').innerHTML = elapsed.toFixed(2)+'<span class="u">s</span>';
+    $('dlSize').textContent = (received/1000/1000).toFixed(1)+' MB';
+    $('dlInfo').textContent = '下载于 '+new Date().toLocaleTimeString();
+    $('speedStatus').innerHTML = '✅ 测速完成 · <b>'+mbps.toFixed(1)+' Mbps</b>';
+  }catch(e){ $('speedStatus').innerHTML = '<span style="color:#f87171">测速失败：'+e.message+'</span>'; }
   btn.disabled = false; btn.textContent = '开始测速（下载 25MB）';
 }
 $('speedBtn').addEventListener('click', runSpeed);
 
-// ==== DNS 检测 ====
+// ==== 多源 DoH DNS 查询 ====
+// Status: 0=NOERROR(有记录), 3=NXDOMAIN(域名不存在), 2=SERVFAIL
+var DOH_SERVERS = [
+  { name: '阿里', url: function(h){ return 'https://dns.alidns.com/resolve?name='+encodeURIComponent(h)+'&type=A'; } },
+  { name: '腾讯', url: function(h){ return 'https://doh.pub/dns-query?name='+encodeURIComponent(h)+'&type=A'; }, accept: 'application/dns-json' },
+  { name: 'Cloudflare', url: function(h){ return 'https://cloudflare-dns.com/dns-query?name='+encodeURIComponent(h)+'&type=A'; }, accept: 'application/dns-json' },
+  { name: 'Google', url: function(h){ return 'https://dns.google/resolve?name='+encodeURIComponent(h)+'&type=A'; } }
+];
+async function queryDoh(server, host){
+  try{
+    var headers = server.accept ? {Accept: server.accept} : {};
+    var r = await fetch(server.url(host), {headers: headers});
+    var j = await r.json();
+    var ips = [];
+    if(j.Answer){
+      for(var i=0;i<j.Answer.length;i++){ if(j.Answer[i].type === 1) ips.push(j.Answer[i].data); }
+    }
+    return { name: server.name, status: j.Status, ips: ips }; // Status: 0 ok, 3 nxdomain
+  }catch(e){ return { name: server.name, status: -1, ips: [], error: e.message }; }
+}
+async function probeDnsMulti(host){
+  var results = await Promise.all(DOH_SERVERS.map(function(s){ return queryDoh(s, host); }));
+  // 汇总
+  var allIps = [];
+  var nxdomainCount = 0, okCount = 0, failCount = 0;
+  var sources = [];
+  results.forEach(function(r){
+    sources.push(r.name + ':' + (r.status === 0 ? 'OK' : r.status === 3 ? 'NX' : 'ERR'));
+    if(r.status === 0){ okCount++; r.ips.forEach(function(ip){ if(allIps.indexOf(ip)===-1) allIps.push(ip); }); }
+    else if(r.status === 3){ nxdomainCount++; }
+    else { failCount++; }
+  });
+  // 判定：只要有一个 DoH 返回 NOERROR 且有 IP，就算真实解析
+  // 所有可达的 DoH 都返回 NXDOMAIN，才算真的不存在
+  var verdict;
+  if(allIps.length > 0) verdict = 'exists';
+  else if(okCount === 0 && nxdomainCount > 0) verdict = 'nxdomain';
+  else if(okCount === 0 && failCount === DOH_SERVERS.length) verdict = 'doh_unreachable';
+  else verdict = 'unknown';
+  return { verdict: verdict, ips: allIps, sources: sources, okCount: okCount, nxdomainCount: nxdomainCount, failCount: failCount };
+}
+
 function getHost(url){
-  url = (url || '').trim();
+  url = (url||'').trim();
   if(!url) return null;
-  if(url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) url = 'https://' + url;
+  if(url.indexOf('http://')!==0 && url.indexOf('https://')!==0) url = 'https://'+url;
   try{ return new URL(url).hostname; }catch(e){ return url; }
 }
-function probeHost(host){
-  return new Promise(function(resolve){
-    var url = 'https://' + host + '/favicon.ico?_=' + Date.now();
-    var started = performance.now();
-    var settled = false;
-    var timeout = setTimeout(finish, 6000);
-    function finish(result){ if(settled) return; settled = true; clearTimeout(timeout); result.ms = (performance.now() - started).toFixed(0); resolve(result); }
-    var img = new Image();
-    img.onload = function(){ finish({ dns: true, reachable: true, httpOk: true }); };
-    img.onerror = function(){
-      var entries = performance.getEntriesByName(url);
-      if(entries.length > 0){ finish({ dns: true, reachable: true, httpOk: false }); }
-      else{
-        fetch('https://' + host + '/?_=' + Date.now(), {mode:'no-cors', cache:'no-store'})
-          .then(function(){ finish({ dns: true, reachable: true, httpOk: false }); })
-          .catch(function(){ finish({ dns: false, reachable: false, httpOk: false }); });
-      }
-    };
-    img.src = url;
-  });
-}
 function makeCard(host){
-  var el = document.createElement('div'); el.className = 'site';
-  el.innerHTML = '<div class="top"><span class="dot run"></span><span class="name">'+host+'</span><span class="badge">检测中</span></div><div class="row"><span>-</span><span>等待</span></div><div class="detail">正在解析 DNS ...</div>';
+  var el = document.createElement('div'); el.className='site';
+  el.innerHTML = '<div class="top"><span class="dot run"></span><span class="name">'+host+'</span><span class="badge">查询中</span></div><div class="row"><span>-</span><span>等待</span></div><div class="detail">正在问 4 个 DoH 服务器...</div>';
   return el;
 }
 function setCard(el, host, r){
   var dot = el.querySelector('.dot'), badge = el.querySelector('.badge'), row = el.querySelector('.row'), detail = el.querySelector('.detail');
   var level, label, msg;
-  if(r.dns && r.httpOk){ level='ok'; label='可达'; msg='<b>DNS 解析成功 · 服务器返回了内容</b>'; }
-  else if(r.dns){ level='warn'; label='DNS OK'; msg='<b>DNS 解析成功 · TCP 可达</b><br>但服务器未返回有效资源（可能 404 / 拒绝跨域图片）'; }
-  else{ level='bad'; label='NXDOMAIN'; msg='<b style="color:#f87171">DNS 解析失败</b><br>该域名无法被系统解析为 IP（域名不存在或被污染）'; }
-  dot.className = 'dot ' + level;
-  badge.className = 'badge ' + level; badge.textContent = label;
-  row.firstElementChild.textContent = r.ms + ' ms';
-  row.lastElementChild.textContent = r.dns ? 'HTTPS' : '-';
+  if(r.verdict === 'exists'){
+    level='ok'; label='DNS 解析';
+    msg = '<b>DNS 真实解析成功</b>（'+r.okCount+'/4 个服务器确认）<br>来源：'+r.sources.join(' · ');
+    if(r.ips.length) msg += '<div class="ips">IP: '+r.ips.slice(0,4).join(', ')+(r.ips.length>4?' 等 '+r.ips.length+' 个':'')+'</div>';
+  }else if(r.verdict === 'nxdomain'){
+    level='bad'; label='NXDOMAIN';
+    msg = '<b style="color:#f87171">域名不存在</b>（'+r.nxdomainCount+'/4 个服务器返回 NXDOMAIN）<br>来源：'+r.sources.join(' · ');
+  }else if(r.verdict === 'doh_unreachable'){
+    level='warn'; label='DoH 离线';
+    msg = '<b style="color:#fbbf24">所有 DoH 服务器不可达</b><br>来源：'+r.sources.join(' · ')+'<br><span style="color:#6b7280">可能你的网络屏蔽了 DoH，结果不可靠</span>';
+  }else{
+    level='warn'; label='结果不一致';
+    msg = '<b>各 DoH 结果不一致</b><br>来源：'+r.sources.join(' · ');
+  }
+  dot.className='dot '+level;
+  badge.className='badge '+level; badge.textContent=label;
+  row.firstElementChild.textContent = r.elapsed ? r.elapsed.toFixed(0)+' ms' : '-';
+  row.lastElementChild.textContent = 'DoH';
   detail.innerHTML = msg;
 }
 async function run(){
@@ -204,19 +220,18 @@ async function run(){
   var cards = hosts.map(function(h){ var c = makeCard(h); $('grid').appendChild(c); return {h:h,c:c}; });
   var okCount=0, warnCount=0, badCount=0;
   await Promise.all(cards.map(async function(item){
-    var r = await probeHost(item.h); setCard(item.c, item.h, r);
-    if(r.dns && r.httpOk) okCount++; else if(r.dns) warnCount++; else badCount++;
-    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 可达 · 🟡 <b class="warn">'+warnCount+'</b> DNS通但无内容 · ❌ <b class="bad">'+badCount+'</b> 无法解析 / 共 '+hosts.length+' 个';
+    var t0 = performance.now();
+    var r = await probeDnsMulti(item.h);
+    r.elapsed = (performance.now()-t0);
+    setCard(item.c, item.h, r);
+    if(r.verdict==='exists') okCount++; else if(r.verdict==='nxdomain') badCount++; else warnCount++;
+    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 解析成功 · 🟡 <b class="warn">'+warnCount+'</b> 异常 · ❌ <b class="bad">'+badCount+'</b> 不存在 / 共 '+hosts.length+' 个';
   }));
   $('runBtn').disabled = false;
 }
 function renderTags(){
   var box = $('tags'); box.innerHTML='';
-  presets.forEach(function(p){
-    var t = document.createElement('span'); t.className='tag'; t.textContent=p;
-    t.onclick = function(){ var v = $('input').value.trim(); $('input').value = v ? v + String.fromCharCode(10) + p : p; };
-    box.appendChild(t);
-  });
+  presets.forEach(function(p){ var t = document.createElement('span'); t.className='tag'; t.textContent=p; t.onclick=function(){ var v=$('input').value.trim(); $('input').value=v?v+String.fromCharCode(10)+p:p; }; box.appendChild(t); });
 }
 $('runBtn').addEventListener('click', run);
 $('clearBtn').addEventListener('click', function(){ $('input').value=''; $('grid').innerHTML=''; $('summary').textContent=''; });
