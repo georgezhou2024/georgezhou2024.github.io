@@ -3,219 +3,143 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>站点连通性检测 · georgezhou2024.github.io</title>
+<title>连通性检测面板</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-    background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);
-    color:#e5e7eb;min-height:100vh;padding:48px 20px;
-    display:flex;flex-direction:column;align-items:center;
-  }
-  .wrap{width:100%;max-width:760px}
-  h1{font-size:clamp(26px,4.5vw,38px);font-weight:700;letter-spacing:-.02em}
-  .sub{margin-top:8px;color:#9ca3af;font-size:14.5px}
-
-  .search{margin-top:32px;display:flex;gap:10px;background:rgba(255,255,255,.05);padding:6px;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
-  .search input{
-    flex:1;background:transparent;border:none;outline:none;color:#f9fafb;
-    font-size:16px;padding:12px 14px;font-family:inherit;
-  }
-  .search input::placeholder{color:#6b7280}
-  .search button{
-    background:#22c55e;color:#052e16;border:none;padding:0 24px;border-radius:10px;
-    font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;
-    transition:opacity .15s,transform .1s;
-  }
-  .search button:hover{opacity:.9}.search button:disabled{opacity:.5;cursor:not-allowed}
-
-  .result{margin-top:24px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;display:none}
-  .result.show{display:block}
-  .status-row{display:flex;align-items:center;gap:14px}
-  .light{width:14px;height:14px;border-radius:50%;flex-shrink:0}
-  .light.ok{background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.6)}
-  .light.bad{background:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.6)}
-  .status-text{font-size:20px;font-weight:600}
-  .status-text.ok{color:#4ade80}.status-text.bad{color:#f87171}
-  .target{margin-top:6px;color:#9ca3af;font-size:14px;word-break:break-all}
-
-  .grid{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-  .kv{background:rgba(0,0,0,.25);border-radius:10px;padding:12px 14px}
-  .kv .k{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
-  .kv .v{margin-top:4px;font-size:16px;font-weight:600;word-break:break-all}
-
-  .history{margin-top:36px}
-  .history h3{font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-  .history ul{list-style:none;display:flex;flex-direction:column;gap:6px}
-  .history li{
-    display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
-    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;
-    font-size:13.5px;cursor:pointer;transition:background .15s;
-  }
-  .history li:hover{background:rgba(255,255,255,.06)}
-  .history .h-url{color:#d1d5db;word-break:break-all;flex:1;margin-right:10px}
-  .history .h-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}
-  .h-code.ok{color:#4ade80}.h-code.bad{color:#f87171}
-  .empty{color:#6b7280;font-size:13px;padding:8px 0}
-
-  footer{margin-top:48px;color:#6b7280;font-size:12.5px;text-align:center;line-height:1.7}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);color:#e5e7eb;min-height:100vh;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
+  .wrap{width:100%;max-width:900px}
+  h1{font-size:clamp(24px,4vw,34px);font-weight:700;letter-spacing:-.02em}
+  .sub{margin-top:6px;color:#9ca3af;font-size:14px}
+  .panel{margin-top:24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}
+  textarea{width:100%;min-height:130px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f9fafb;padding:14px;font-size:14.5px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none;line-height:1.6;}
+  textarea:focus{border-color:#22c55e}
+  textarea::placeholder{color:#6b7280}
+  .actions{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{background:#22c55e;color:#052e16;border:none;padding:11px 22px;border-radius:10px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;}
+  button.secondary{background:rgba(255,255,255,.08);color:#e5e7eb}
+  button:hover{opacity:.9}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .summary{font-size:13.5px;color:#9ca3af;margin-left:auto}
+  .summary b{color:#4ade80}
+  .summary b.bad{color:#f87171}
+  .grid{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+  .site{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
+  .site .top{display:flex;align-items:center;gap:10px}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:#4b5563}
+  .dot.ok{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.6)}
+  .dot.bad{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.6)}
+  .dot.run{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.6);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.4}}
+  .site .name{font-size:14px;font-weight:600;word-break:break-all;flex:1}
+  .site .meta{display:flex;justify-content:space-between;color:#9ca3af;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .site .code{font-weight:600}
+  .code.ok{color:#4ade80}
+  .code.bad{color:#f87171}
+  .code.warn{color:#fbbf24}
+  .history{margin-top:32px}
+  .history h3{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+  .tags{display:flex;flex-wrap:wrap;gap:8px}
+  .tag{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#d1d5db;padding:6px 12px;border-radius:999px;font-size:12.5px;cursor:pointer;}
+  .tag:hover{background:rgba(34,197,94,.2);border-color:#22c55e}
+  footer{margin-top:40px;color:#6b7280;font-size:12.5px;text-align:center;line-height:1.7}
   footer a{color:#9ca3af;text-decoration:none}
-  footer a:hover{color:#fff}
-  .tip{margin-top:12px;font-size:12px;color:#6b7280;line-height:1.6}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🌐 站点连通性检测</h1>
-  <div class="sub">输入任意域名或 URL，实时检测是否可访问 · 无需注册</div>
-
-  <div class="search">
-    <input id="urlInput" placeholder="输入域名或 URL，如 baidu.com / https://example.com" autofocus />
-    <button id="checkBtn">检测</button>
-  </div>
-
-  <div class="tip">💡 只输入域名即可自动补 https:// · 结果基于浏览器端探测（含 CORS 代理）</div>
-
-  <div class="result" id="result">
-    <div class="status-row">
-      <div class="light" id="light"></div>
-      <div class="status-text" id="statusText">—</div>
-    </div>
-    <div class="target" id="target">—</div>
-    <div class="grid">
-      <div class="kv"><div class="k">HTTP 状态码</div><div class="v" id="kCode">—</div></div>
-      <div class="kv"><div class="k">响应耗时</div><div class="v" id="kMs">—</div></div>
-      <div class="kv"><div class="k">协议</div><div class="v" id="kProto">—</div></div>
-      <div class="kv"><div class="k">检测时间</div><div class="v" id="kTime">—</div></div>
+  <h1>站点连通性检测面板</h1>
+  <div class="sub">每行输入一个域名或 URL，批量检测是否可访问</div>
+  <div class="panel">
+    <textarea id="input" placeholder="每行输入一个域名或 URL，例如：&#10;baidu.com&#10;github.com&#10;https://zhihu.com"></textarea>
+    <div class="actions">
+      <button id="runBtn">开始批量检测</button>
+      <button class="secondary" id="clearBtn">清空</button>
+      <span class="summary" id="summary"></span>
     </div>
   </div>
-
+  <div class="grid" id="grid"></div>
   <div class="history">
-    <h3>最近检测</h3>
-    <ul id="historyList"><li class="empty">暂无记录</li></ul>
+    <h3>常用站点（点击加入输入框）</h3>
+    <div class="tags" id="tags"></div>
   </div>
-
-  <footer>
-    仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024/georgezhou2024.github.io</a><br/>
-    © 2026 georgezhou2024 · Powered by GitHub Pages
-  </footer>
+  <footer>仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024.github.io</a></footer>
 </div>
-
 <script>
-const $ = id => document.getElementById(id);
-
-function normalize(input){
-  input = (input||'').trim();
-  if(!input) return null;
-  if(!/^https?:\/\//i.test(input)) input = 'https://' + input;
-  try{ return new URL(input).href; }catch{ return null; }
+var $ = function(id){ return document.getElementById(id); };
+var presets = ['baidu.com','github.com','google.com','zhihu.com','doubao.com','bilibili.com','weibo.com','taobao.com','jd.com','youtube.com'];
+function normalize(s){
+  s = (s || '').trim();
+  if(!s) return null;
+  if(s.indexOf('http://') !== 0 && s.indexOf('https://') !== 0) s = 'https://' + s;
+  try{ return new URL(s).href; }catch(e){ return null; }
 }
-
 async function probe(url){
-  // 主：通过公共 CORS 代理拿真实状态码
-  const proxies = [
-    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)
+  var t0 = performance.now();
+  var proxies = [
+    function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
+    function(u){ return 'https://corsproxy.io/?url=' + encodeURIComponent(u); }
   ];
-  const t0 = performance.now();
-  for(const build of proxies){
+  for(var i=0;i<proxies.length;i++){
     try{
-      const r = await fetch(build(url), {redirect:'follow'});
-      return { ok: true, status: r.status, ms: (performance.now()-t0).toFixed(0), via: 'proxy' };
-    }catch(e){ /* try next */ }
+      var r = await fetch(proxies[i](url), {redirect:'follow'});
+      return { ok: r.status < 500, status: r.status, ms: (performance.now()-t0).toFixed(0) };
+    }catch(e){}
   }
-  // 备：直连 no-cors，能连就是 opaque
   try{
     await fetch(url, {mode:'no-cors', cache:'no-store'});
-    return { ok: true, status: 'opaque (直连可达)', ms: (performance.now()-t0).toFixed(0), via: 'direct' };
+    return { ok: true, status: 'opaque', ms: (performance.now()-t0).toFixed(0) };
   }catch(e){
-    return { ok: false, error: e.message, ms: (performance.now()-t0).toFixed(0), via: 'failed' };
+    return { ok: false, status: 'ERR', ms: (performance.now()-t0).toFixed(0) };
   }
 }
-
-function render(url, r){
-  $('result').classList.add('show');
-  $('target').textContent = url;
-  $('kProto').textContent = new URL(url).protocol.replace(':','').toUpperCase();
-  $('kTime').textContent = new Date().toLocaleString();
-  $('kMs').textContent = r.ms + ' ms';
-
-  if(r.ok){
-    $('light').className = 'light ok';
-    $('statusText').className = 'status-text ok';
-    $('statusText').textContent = '✅ 可访问';
-    $('kCode').textContent = r.status;
-    $('kCode').style.color = typeof r.status === 'number' && r.status < 400 ? '#4ade80' : '#fbbf24';
-  }else{
-    $('light').className = 'light bad';
-    $('statusText').className = 'status-text bad';
-    $('statusText').textContent = '❌ 无法访问';
-    $('kCode').textContent = '失败';
-    $('kCode').style.color = '#f87171';
-  }
+function makeCard(url){
+  var el = document.createElement('div');
+  el.className = 'site';
+  var display = url.replace('https://','').replace('http://','');
+  el.innerHTML = '<div class="top"><span class="dot run"></span><span class="name">'+display+'</span></div><div class="meta"><span>-</span><span class="code">检测中...</span></div>';
+  return el;
 }
-
-// 历史记录
-function loadHistory(){
-  try{ return JSON.parse(localStorage.getItem('probe-hist')||'[]'); }catch{ return []; }
+function setCard(el, r){
+  var dot = el.querySelector('.dot'), code = el.querySelector('.code'), meta = el.querySelector('.meta');
+  dot.className = 'dot ' + (r.ok ? 'ok' : 'bad');
+  code.className = 'code ' + (r.ok ? (r.status < 400 ? 'ok' : 'warn') : 'bad');
+  code.textContent = r.status;
+  meta.firstElementChild.textContent = r.ms + ' ms';
 }
-function saveHistory(item){
-  const h = [item, ...loadHistory()].slice(0,8);
-  localStorage.setItem('probe-hist', JSON.stringify(h));
-  renderHistory();
+async function run(){
+  var lines = $('input').value.split(String.fromCharCode(10)).map(normalize).filter(Boolean);
+  if(!lines.length){ alert('请先输入至少一个域名'); return; }
+  $('runBtn').disabled = true;
+  $('grid').innerHTML = '';
+  $('summary').innerHTML = '';
+  var cards = lines.map(function(u){ var c = makeCard(u); $('grid').appendChild(c); return {u:u,c:c}; });
+  var okCount = 0, badCount = 0;
+  await Promise.all(cards.map(async function(item){
+    var r = await probe(item.u);
+    setCard(item.c, r);
+    if(r.ok) okCount++; else badCount++;
+    $('summary').innerHTML = '✅ <b>'+okCount+'</b> 通 · ❌ <b class="bad">'+badCount+'</b> 不通 / 共 '+lines.length+' 个';
+  }));
+  $('runBtn').disabled = false;
 }
-function renderHistory(){
-  const h = loadHistory();
-  const ul = $('historyList');
-  if(!h.length){ ul.innerHTML = '<li class="empty">暂无记录</li>'; return; }
-  ul.innerHTML = '';
-  h.forEach(it=>{
-    const li = document.createElement('li');
-    const code = document.createElement('span');
-    code.className = 'h-code ' + (it.ok ? 'ok' : 'bad');
-    code.textContent = it.ok ? (it.status || 'OK') : 'FAIL';
-    const u = document.createElement('span');
-    u.className = 'h-url';
-    u.textContent = it.url;
-    li.appendChild(u); li.appendChild(code);
-    li.onclick = () => { $('urlInput').value = it.url; doCheck(); };
-    ul.appendChild(li);
+function renderTags(){
+  var box = $('tags'); box.innerHTML = '';
+  presets.forEach(function(p){
+    var t = document.createElement('span');
+    t.className = 'tag'; t.textContent = p;
+    t.onclick = function(){
+      var v = $('input').value.trim();
+      $('input').value = v ? v + String.fromCharCode(10) + p : p;
+    };
+    box.appendChild(t);
   });
 }
-
-async function doCheck(){
-  const url = normalize($('urlInput').value);
-  if(!url){
-    $('result').classList.add('show');
-    $('light').className = 'light bad';
-    $('statusText').className = 'status-text bad';
-    $('statusText').textContent = '⚠️ 请输入有效域名或 URL';
-    $('target').textContent = '';
-    return;
-  }
-  $('checkBtn').disabled = true;
-  $('checkBtn').textContent = '检测中…';
-  $('result').classList.add('show');
-  $('light').className = 'light';
-  $('statusText').className = 'status-text';
-  $('statusText').textContent = '检测中…';
-  $('target').textContent = url;
-  $('kCode').textContent = '—'; $('kMs').textContent = '—'; $('kTime').textContent = '—';
-
-  const r = await probe(url);
-  render(url, r);
-  saveHistory({url, ok:r.ok, status:r.status, ts:Date.now()});
-
-  $('checkBtn').disabled = false;
-  $('checkBtn').textContent = '检测';
-}
-
-$('checkBtn').addEventListener('click', doCheck);
-$('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') doCheck(); });
-renderHistory();
-
-// 打开页面时先自检一下本站
-window.addEventListener('load', () => { $('urlInput').value = location.hostname; doCheck(); });
+$('runBtn').addEventListener('click', run);
+$('clearBtn').addEventListener('click', function(){
+  $('input').value = ''; $('grid').innerHTML = ''; $('summary').textContent = '';
+});
+$('input').value = location.hostname;
+renderTags();
 </script>
 </body>
 </html>
