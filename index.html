@@ -3,12 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>DNS 连通性检测面板</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<title>DNS 连通性检测面板 v3</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);color:#e5e7eb;min-height:100vh;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
   .wrap{width:100%;max-width:960px}
+  .title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   h1{font-size:clamp(24px,4vw,34px);font-weight:700;letter-spacing:-.02em}
+  .ver{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:rgba(34,197,94,.15);color:#4ade80;padding:4px 10px;border-radius:999px;border:1px solid rgba(34,197,94,.3)}
   .sub{margin-top:6px;color:#9ca3af;font-size:14px}
   .panel{margin-top:24px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px}
   textarea{width:100%;min-height:120px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#f9fafb;padding:14px;font-size:14.5px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical;outline:none;line-height:1.6;}
@@ -51,8 +54,11 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>DNS 连通性检测面板</h1>
-  <div class="sub">浏览器原生探测 · 不依赖任何第三方代理 · 准确判断每个域名是否解析、是否可达</div>
+  <div class="title-row">
+    <h1>DNS 连通性检测面板</h1>
+    <span class="ver">v3 · 纯前端</span>
+  </div>
+  <div class="sub">浏览器原生 Image+fetch 探测 · 不依赖任何第三方代理 · 准确判断 DNS 是否解析</div>
   <div class="panel">
     <textarea id="input" placeholder="每行输入一个域名，例如：&#10;baidu.com&#10;github.com&#10;this-domain-does-not-exist-zzz999.com"></textarea>
     <div class="actions">
@@ -66,7 +72,7 @@
     <h3>常用站点（点击加入输入框）</h3>
     <div class="tags" id="tags"></div>
   </div>
-  <footer>纯前端 DNS 探测 · 仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
+  <footer>v3 纯前端 DNS 探测 · 仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">link</a></footer>
 </div>
 <script>
 var $ = function(id){ return document.getElementById(id); };
@@ -80,10 +86,10 @@ function getHost(url){
 }
 
 // 用 Image 对象探测：
-// - 如果 DNS 解析失败，浏览器不会发请求，img 立刻 error
-// - 如果 DNS 成功，请求会发出，性能面板里能看到 entry
-// - 如果服务器返回了有效图片，img onload
-// - 如果服务器返回非图片（404/500/拒绝），img error 但有性能记录
+// - DNS 失败：浏览器不会发请求，img 立刻 error，performance 里没有记录
+// - DNS 成功：请求发出，performance 里有记录
+// - 服务器返回图片：img onload
+// - 服务器返回非图片（404/500）：img error 但有 performance 记录
 function probeHost(host){
   return new Promise(function(resolve){
     var url = 'https://' + host + '/favicon.ico?_=' + Date.now();
@@ -99,19 +105,14 @@ function probeHost(host){
     }
     var img = new Image();
     img.onload = function(){
-      // 服务器真的返回了图片字节
       finish({ dns: true, reachable: true, httpOk: true });
     };
     img.onerror = function(){
-      // 检查 performance 面板里有没有这个请求的记录
       var entries = performance.getEntriesByName(url);
       var dnsResolved = entries.length > 0;
-      // 再用一个 HEAD fetch no-cors 交叉确认 TCP 可达
       if(!dnsResolved){
-        // 可能是 DNS 失败，也可能是图片本身不存在
-        // 用一个随机路径再试一次
-        var probeUrl = 'https://' + host + '/?_=' + Date.now();
-        fetch(probeUrl, {mode:'no-cors', cache:'no-store'})
+        // 用 fetch no-cors 交叉确认
+        fetch('https://' + host + '/?_=' + Date.now(), {mode:'no-cors', cache:'no-store'})
           .then(function(){ finish({ dns: true, reachable: true, httpOk: false }); })
           .catch(function(){ finish({ dns: false, reachable: false, httpOk: false }); });
       }else{
