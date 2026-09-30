@@ -3,95 +3,219 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>georgezhou2024.github.io — 状态</title>
+<title>站点连通性检测 · georgezhou2024.github.io</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
     background:radial-gradient(1200px 600px at 50% -10%,#16213e 0%,#0a0e14 60%);
-    color:#e5e7eb;min-height:100%;display:flex;flex-direction:column;align-items:center;padding:48px 20px;
+    color:#e5e7eb;min-height:100vh;padding:48px 20px;
+    display:flex;flex-direction:column;align-items:center;
   }
   .wrap{width:100%;max-width:760px}
-  .badge{
-    display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;
-    background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#4ade80;
-    font-size:14px;font-weight:500;
+  h1{font-size:clamp(26px,4.5vw,38px);font-weight:700;letter-spacing:-.02em}
+  .sub{margin-top:8px;color:#9ca3af;font-size:14.5px}
+
+  .search{margin-top:32px;display:flex;gap:10px;background:rgba(255,255,255,.05);padding:6px;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
+  .search input{
+    flex:1;background:transparent;border:none;outline:none;color:#f9fafb;
+    font-size:16px;padding:12px 14px;font-family:inherit;
   }
-  .dot{width:10px;height:10px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.7);animation:pulse 1.8s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}70%{box-shadow:0 0 0 14px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
-  h1{margin-top:24px;font-size:clamp(28px,5vw,46px);font-weight:700;letter-spacing:-.02em;word-break:break-all}
-  .sub{margin-top:10px;color:#9ca3af;font-size:15px}
-  .grid{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-  .card{
-    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px 20px;
+  .search input::placeholder{color:#6b7280}
+  .search button{
+    background:#22c55e;color:#052e16;border:none;padding:0 24px;border-radius:10px;
+    font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;
+    transition:opacity .15s,transform .1s;
   }
-  .card .k{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
-  .card .v{margin-top:8px;font-size:22px;font-weight:600;color:#f9fafb;word-break:break-all}
-  .card .v.green{color:#4ade80}.card .v.blue{color:#60a5fa}
-  .btn{
-    margin-top:28px;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:10px;
-    background:#22c55e;color:#052e16;font-weight:600;border:none;cursor:pointer;font-size:14px;
-    transition:transform .1s ease,opacity .2s;
+  .search button:hover{opacity:.9}.search button:disabled{opacity:.5;cursor:not-allowed}
+
+  .result{margin-top:24px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;display:none}
+  .result.show{display:block}
+  .status-row{display:flex;align-items:center;gap:14px}
+  .light{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+  .light.ok{background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.6)}
+  .light.bad{background:#ef4444;box-shadow:0 0 12px rgba(239,68,68,.6)}
+  .status-text{font-size:20px;font-weight:600}
+  .status-text.ok{color:#4ade80}.status-text.bad{color:#f87171}
+  .target{margin-top:6px;color:#9ca3af;font-size:14px;word-break:break-all}
+
+  .grid{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+  .kv{background:rgba(0,0,0,.25);border-radius:10px;padding:12px 14px}
+  .kv .k{font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em}
+  .kv .v{margin-top:4px;font-size:16px;font-weight:600;word-break:break-all}
+
+  .history{margin-top:36px}
+  .history h3{font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+  .history ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+  .history li{
+    display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+    background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;
+    font-size:13.5px;cursor:pointer;transition:background .15s;
   }
-  .btn:hover{opacity:.9;transform:translateY(-1px)}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  footer{margin-top:48px;color:#6b7280;font-size:13px;text-align:center;line-height:1.7}
-  footer a{color:#9ca3af;text-decoration:none;border-bottom:1px dotted #4b5563}
+  .history li:hover{background:rgba(255,255,255,.06)}
+  .history .h-url{color:#d1d5db;word-break:break-all;flex:1;margin-right:10px}
+  .history .h-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}
+  .h-code.ok{color:#4ade80}.h-code.bad{color:#f87171}
+  .empty{color:#6b7280;font-size:13px;padding:8px 0}
+
+  footer{margin-top:48px;color:#6b7280;font-size:12.5px;text-align:center;line-height:1.7}
+  footer a{color:#9ca3af;text-decoration:none}
   footer a:hover{color:#fff}
-  .log{margin-top:24px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#9ca3af;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;line-height:1.7;white-space:pre-wrap}
+  .tip{margin-top:12px;font-size:12px;color:#6b7280;line-height:1.6}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <span class="badge"><span class="dot"></span><span id="statusText">站点在线 · Operational</span></span>
-  <h1 id="domain">georgezhou2024.github.io</h1>
-  <div class="sub">GitHub Pages 状态自检页 · 由本页面自身证明站点可用</div>
+  <h1>🌐 站点连通性检测</h1>
+  <div class="sub">输入任意域名或 URL，实时检测是否可访问 · 无需注册</div>
 
-  <div class="grid">
-    <div class="card"><div class="k">HTTP 状态码</div><div class="v green" id="code">检测中…</div></div>
-    <div class="card"><div class="k">页面加载耗时</div><div class="v blue" id="ttfb">—</div></div>
-    <div class="card"><div class="k">协议</div><div class="v" id="proto">—</div></div>
-    <div class="card"><div class="k">检测时间</div><div class="v" id="checkedAt">—</div></div>
+  <div class="search">
+    <input id="urlInput" placeholder="输入域名或 URL，如 baidu.com / https://example.com" autofocus />
+    <button id="checkBtn">检测</button>
   </div>
 
-  <button class="btn" id="recheck">↻ 重新检测</button>
+  <div class="tip">💡 只输入域名即可自动补 https:// · 结果基于浏览器端探测（含 CORS 代理）</div>
 
-  <div class="log" id="log">就绪。</div>
+  <div class="result" id="result">
+    <div class="status-row">
+      <div class="light" id="light"></div>
+      <div class="status-text" id="statusText">—</div>
+    </div>
+    <div class="target" id="target">—</div>
+    <div class="grid">
+      <div class="kv"><div class="k">HTTP 状态码</div><div class="v" id="kCode">—</div></div>
+      <div class="kv"><div class="k">响应耗时</div><div class="v" id="kMs">—</div></div>
+      <div class="kv"><div class="k">协议</div><div class="v" id="kProto">—</div></div>
+      <div class="kv"><div class="k">检测时间</div><div class="v" id="kTime">—</div></div>
+    </div>
+  </div>
+
+  <div class="history">
+    <h3>最近检测</h3>
+    <ul id="historyList"><li class="empty">暂无记录</li></ul>
+  </div>
 
   <footer>
-    仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="blank">georgezhou2024/georgezhou2024.github.io</a><br/>
-    © 2026 georgezhou2024 · Built with GitHub Pages
+    仓库：<a href="https://github.com/georgezhou2024/georgezhou2024.github.io" target="_blank">georgezhou2024/georgezhou2024.github.io</a><br/>
+    © 2026 georgezhou2024 · Powered by GitHub Pages
   </footer>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const log = (...a) => { $('log').textContent = '[' + new Date().toLocaleTimeString() + '] ' + a.join('\n'); };
 
-async function check(){
-  $('recheck').disabled = true;
+function normalize(input){
+  input = (input||'').trim();
+  if(!input) return null;
+  if(!/^https?:\/\//i.test(input)) input = 'https://' + input;
+  try{ return new URL(input).href; }catch{ return null; }
+}
+
+async function probe(url){
+  // 主：通过公共 CORS 代理拿真实状态码
+  const proxies = [
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)
+  ];
   const t0 = performance.now();
+  for(const build of proxies){
+    try{
+      const r = await fetch(build(url), {redirect:'follow'});
+      return { ok: true, status: r.status, ms: (performance.now()-t0).toFixed(0), via: 'proxy' };
+    }catch(e){ /* try next */ }
+  }
+  // 备：直连 no-cors，能连就是 opaque
   try{
-    const r = await fetch(location.href.split('?')[0] + '?t=' + Date.now(), {method:'GET', cache:'no-store'});
-    const dt = (performance.now() - t0).toFixed(0);
-    $('code').textContent = r.status + ' ' + r.statusText;
-    $('ttfb').textContent = dt + ' ms';
-    $('proto').textContent = location.protocol.replace(':','').toUpperCase();
-    $('checkedAt').textContent = new Date().toLocaleString();
-    $('statusText').textContent = r.ok ? '站点在线 · Operational' : '异常 · ' + r.status;
-    log('自检完成：HTTP ' + r.status + '，耗时 ' + dt + ' ms。');
+    await fetch(url, {mode:'no-cors', cache:'no-store'});
+    return { ok: true, status: 'opaque (直连可达)', ms: (performance.now()-t0).toFixed(0), via: 'direct' };
   }catch(e){
-    $('code').textContent = '请求失败';
-    $('statusText').textContent = '无法访问';
-    log('自检失败：' + e.message);
-  }finally{
-    $('recheck').disabled = false;
+    return { ok: false, error: e.message, ms: (performance.now()-t0).toFixed(0), via: 'failed' };
   }
 }
 
-window.addEventListener('load', check);
-$('recheck').addEventListener('click', check);
+function render(url, r){
+  $('result').classList.add('show');
+  $('target').textContent = url;
+  $('kProto').textContent = new URL(url).protocol.replace(':','').toUpperCase();
+  $('kTime').textContent = new Date().toLocaleString();
+  $('kMs').textContent = r.ms + ' ms';
+
+  if(r.ok){
+    $('light').className = 'light ok';
+    $('statusText').className = 'status-text ok';
+    $('statusText').textContent = '✅ 可访问';
+    $('kCode').textContent = r.status;
+    $('kCode').style.color = typeof r.status === 'number' && r.status < 400 ? '#4ade80' : '#fbbf24';
+  }else{
+    $('light').className = 'light bad';
+    $('statusText').className = 'status-text bad';
+    $('statusText').textContent = '❌ 无法访问';
+    $('kCode').textContent = '失败';
+    $('kCode').style.color = '#f87171';
+  }
+}
+
+// 历史记录
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem('probe-hist')||'[]'); }catch{ return []; }
+}
+function saveHistory(item){
+  const h = [item, ...loadHistory()].slice(0,8);
+  localStorage.setItem('probe-hist', JSON.stringify(h));
+  renderHistory();
+}
+function renderHistory(){
+  const h = loadHistory();
+  const ul = $('historyList');
+  if(!h.length){ ul.innerHTML = '<li class="empty">暂无记录</li>'; return; }
+  ul.innerHTML = '';
+  h.forEach(it=>{
+    const li = document.createElement('li');
+    const code = document.createElement('span');
+    code.className = 'h-code ' + (it.ok ? 'ok' : 'bad');
+    code.textContent = it.ok ? (it.status || 'OK') : 'FAIL';
+    const u = document.createElement('span');
+    u.className = 'h-url';
+    u.textContent = it.url;
+    li.appendChild(u); li.appendChild(code);
+    li.onclick = () => { $('urlInput').value = it.url; doCheck(); };
+    ul.appendChild(li);
+  });
+}
+
+async function doCheck(){
+  const url = normalize($('urlInput').value);
+  if(!url){
+    $('result').classList.add('show');
+    $('light').className = 'light bad';
+    $('statusText').className = 'status-text bad';
+    $('statusText').textContent = '⚠️ 请输入有效域名或 URL';
+    $('target').textContent = '';
+    return;
+  }
+  $('checkBtn').disabled = true;
+  $('checkBtn').textContent = '检测中…';
+  $('result').classList.add('show');
+  $('light').className = 'light';
+  $('statusText').className = 'status-text';
+  $('statusText').textContent = '检测中…';
+  $('target').textContent = url;
+  $('kCode').textContent = '—'; $('kMs').textContent = '—'; $('kTime').textContent = '—';
+
+  const r = await probe(url);
+  render(url, r);
+  saveHistory({url, ok:r.ok, status:r.status, ts:Date.now()});
+
+  $('checkBtn').disabled = false;
+  $('checkBtn').textContent = '检测';
+}
+
+$('checkBtn').addEventListener('click', doCheck);
+$('urlInput').addEventListener('keydown', e => { if(e.key==='Enter') doCheck(); });
+renderHistory();
+
+// 打开页面时先自检一下本站
+window.addEventListener('load', () => { $('urlInput').value = location.hostname; doCheck(); });
 </script>
 </body>
 </html>
